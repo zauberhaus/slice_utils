@@ -14,7 +14,8 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: googleapis/release-please-action@v4
+      - name: Check Commits
+        uses: googleapis/release-please-action@v4
         with:
           # this assumes that you have created a personal access token
           # (PAT) and configured it as a GitHub action secret named
@@ -23,3 +24,14 @@ jobs:
           # this is a built-in strategy in release-please, see "Action Inputs"
           # for more options
           release-type: go
+
+      - name: Checkout Code 
+        if: steps.release.outputs.prs_created == 'true'
+        uses: actions/checkout@v6
+
+      - name: Merge Pull Request
+        if: steps.release.outputs.prs_created == 'true'
+        id: merge
+        run: gh pr merge --merge --auto "${{ fromJSON(steps.release.outputs.pr || '{}').number }}" 
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
