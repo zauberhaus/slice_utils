@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.5](https://github.com/zauberhaus/slice_utils/compare/v1.0.4...v1.0.5) (2026-01-13)
+
+
+### Bug Fixes
+
+* add test workflow ([40e7757](https://github.com/zauberhaus/slice_utils/commit/40e7757e7207900d8735d24e5b550bef8b02ac42))
+* add test workflow ([54fc88c](https://github.com/zauberhaus/slice_utils/commit/54fc88c0e46fd00d344f94b95356be6fa8f4ba7b))
+
 ## [1.0.4](https://github.com/zauberhaus/slice_utils/compare/v1.0.3...v1.0.4) (2026-01-13)
 
 
