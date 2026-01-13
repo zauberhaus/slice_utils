@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/zauberhaus/slice_utils/compare/v1.0.3...v1.0.4) (2026-01-13)
+
+
+### Bug Fixes
+
+* bug in release workflow ([9af86d5](https://github.com/zauberhaus/slice_utils/commit/9af86d51578a1bf9de1b8a12a1ec81492e6f15bf))
+
 ## [1.0.3](https://github.com/zauberhaus/slice_utils/compare/v1.0.2...v1.0.3) (2026-01-13)
 
 
