@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.3](https://github.com/zauberhaus/slice_utils/compare/v1.0.2...v1.0.3) (2026-01-13)
+
+
+### Bug Fixes
+
+* change schedule for CodeQL ([41d2c5b](https://github.com/zauberhaus/slice_utils/commit/41d2c5b89c5ed595147d9c6b317941613d9cc834))
+* change schedule for CodeQL ([bafb2aa](https://github.com/zauberhaus/slice_utils/commit/bafb2aae51e706f153effa32a15fd176bf673f58))
+
 ## [1.0.2](https://github.com/zauberhaus/slice_utils/compare/v1.0.1...v1.0.2) (2026-01-13)
 
 
