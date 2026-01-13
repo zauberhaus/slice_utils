@@ -10,7 +10,6 @@ on:
 
 jobs:
   analyze:
-    if: "!contains(github.event.pull_request.labels.*.name, 'autorelease')"
     name: Analyze (${{ matrix.language }})
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
     permissions:
