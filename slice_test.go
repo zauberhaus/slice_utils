@@ -852,6 +852,12 @@ func TestChunks(t *testing.T) {
 			size:  0,
 			want:  [][]int{{1, 2, 3}},
 		},
+		{
+			name:  "empty slice with invalid size",
+			input: []int{},
+			size:  0,
+			want:  [][]int{},
+		},
 	}
 
 	for _, tt := range tests {

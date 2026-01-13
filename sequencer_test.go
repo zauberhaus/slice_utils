@@ -63,11 +63,29 @@ func TestRemoveSeq(t *testing.T) {
 }
 
 func TestPatternSeq(t *testing.T) {
-	data := []string{"apple", "banana", "cherry", "date"}
-	re := regexp.MustCompile(`a.*e`) // matches apple, date
-	seq := slice_utils.PatternSeq(slices.Values(data), re)
-	got := slices.Collect(seq)
-	assert.Equal(t, []string{"apple", "date"}, got)
+	t.Run("string", func(t *testing.T) {
+		data := []string{"apple", "banana", "cherry", "date"}
+		re := regexp.MustCompile(`a.*e`) // matches apple, date
+		seq := slice_utils.PatternSeq(slices.Values(data), re)
+		got := slices.Collect(seq)
+		assert.Equal(t, []string{"apple", "date"}, got)
+	})
+
+	t.Run("int", func(t *testing.T) {
+		data := []int{1, 2, 3}
+		re := regexp.MustCompile(`2`) // matches 2
+		seq := slice_utils.PatternSeq(slices.Values(data), re)
+		got := slices.Collect(seq)
+		assert.Equal(t, []int{2}, got)
+	})
+
+	t.Run("Stringer", func(t *testing.T) {
+		data := []MyStringer{1, 2, 3}
+		re := regexp.MustCompile(`val2`) // matches 2
+		seq := slice_utils.PatternSeq(slices.Values(data), re)
+		got := slices.Collect(seq)
+		assert.Equal(t, []MyStringer{2}, got)
+	})
 }
 
 func TestStringPatternSeq(t *testing.T) {
@@ -193,4 +211,151 @@ func TestConvertSeq(t *testing.T) {
 	})
 	got := slices.Collect(seq)
 	assert.Equal(t, []string{"1", "2", "3"}, got)
+}
+
+func TestEarlyTermination(t *testing.T) {
+	t.Run("FilterSeq", func(t *testing.T) {
+		data := []int{1, 2, 3, 4, 5}
+		seq := slice_utils.FilterSeq(slices.Values(data), func(v int) bool { return true })
+		count := 0
+		seq(func(v int) bool {
+			count++
+			return false
+		})
+		assert.Equal(t, 1, count)
+	})
+
+	t.Run("RemoveSeq", func(t *testing.T) {
+		data := []int{1, 2, 3}
+		remove := []int{}
+		seq := slice_utils.RemoveSeq(slices.Values(data), slices.Values(remove))
+		count := 0
+		seq(func(v int) bool {
+			count++
+			return false
+		})
+		assert.Equal(t, 1, count)
+	})
+
+	t.Run("PatternSeq", func(t *testing.T) {
+		data := []string{"a", "b", "c"}
+		re := regexp.MustCompile(".")
+		seq := slice_utils.PatternSeq(slices.Values(data), re)
+		count := 0
+		seq(func(v string) bool {
+			count++
+			return false
+		})
+		assert.Equal(t, 1, count)
+	})
+
+	t.Run("StringPatternSeq", func(t *testing.T) {
+		data := []string{"a", "a", "a"}
+		seq := slice_utils.StringPatternSeq(slices.Values(data), "a")
+		count := 0
+		seq(func(v string) bool {
+			count++
+			return false
+		})
+		assert.Equal(t, 1, count)
+	})
+
+	t.Run("DuplicateSeq", func(t *testing.T) {
+		data := []int{1, 1, 2, 2}
+		seq := slice_utils.DuplicateSeq(slices.Values(data))
+		count := 0
+		seq(func(v int) bool {
+			count++
+			return false
+		})
+		assert.Equal(t, 1, count)
+	})
+
+	t.Run("DeduplicationSeq", func(t *testing.T) {
+		data := []int{1, 2, 3}
+		seq := slice_utils.DeduplicationSeq(slices.Values(data))
+		count := 0
+		seq(func(v int) bool {
+			count++
+			return false
+		})
+		assert.Equal(t, 1, count)
+	})
+
+	t.Run("HashSeq", func(t *testing.T) {
+		data := []int{1, 2, 3}
+		seq := slice_utils.HashSeq(slices.Values(data))
+		count := 0
+		seq(func(h uint64, v int) bool {
+			count++
+			return false
+		})
+		assert.Equal(t, 1, count)
+	})
+
+	t.Run("GroupSeq", func(t *testing.T) {
+		data := []int{1, 2}
+		seq := slice_utils.GroupSeq[[]int](slices.Values(data), func(v int) int { return v })
+		count := 0
+		seq(func(g []int) bool {
+			count++
+			return false
+		})
+		assert.Equal(t, 1, count)
+	})
+
+	t.Run("ReplaceFuncSeq", func(t *testing.T) {
+		data := []int{1, 2, 3}
+		seq := slice_utils.ReplaceFuncSeq(slices.Values(data), func(v int) int { return v })
+		count := 0
+		seq(func(v int) bool {
+			count++
+			return false
+		})
+		assert.Equal(t, 1, count)
+	})
+
+	t.Run("ReplaceSeq", func(t *testing.T) {
+		data := []int{1, 2, 3}
+		seq := slice_utils.ReplaceSeq(slices.Values(data), map[int]int{})
+		count := 0
+		seq(func(v int) bool {
+			count++
+			return false
+		})
+		assert.Equal(t, 1, count)
+	})
+
+	t.Run("ReplaceSeq_Match", func(t *testing.T) {
+		data := []int{1, 2, 3}
+		seq := slice_utils.ReplaceSeq(slices.Values(data), map[int]int{1: 10})
+		count := 0
+		seq(func(v int) bool {
+			count++
+			return false
+		})
+		assert.Equal(t, 1, count)
+	})
+
+	t.Run("ConvertSeq", func(t *testing.T) {
+		data := []int{1, 2, 3}
+		seq := slice_utils.ConvertSeq(slices.Values(data), func(v int) int { return v })
+		count := 0
+		seq(func(v int) bool {
+			count++
+			return false
+		})
+		assert.Equal(t, 1, count)
+	})
+
+	t.Run("AnySeq", func(t *testing.T) {
+		data := []int{1, 2, 3}
+		seq := slice_utils.AnySeq(slices.Values(data))
+		count := 0
+		seq(func(v any) bool {
+			count++
+			return false
+		})
+		assert.Equal(t, 1, count)
+	})
 }
