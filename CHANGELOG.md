@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0 (2026-01-14)
+
+
+### Features
+
+* first commit ([ff7ecea](https://github.com/zauberhaus/slice_utils/commit/ff7ecead10d145529efa48ce520eed0a98af418a))
+
 ## [1.0.4](https://github.com/zauberhaus/slice_utils/compare/v1.0.3...v1.0.4) (2026-01-13)
 
 
