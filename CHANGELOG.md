@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.2](https://github.com/zauberhaus/slice_utils/compare/v1.0.1...v1.0.2) (2026-01-14)
+
+
+### Bug Fixes
+
+* add first workflow ([71d9d76](https://github.com/zauberhaus/slice_utils/commit/71d9d760f7214414371fe6997028476c4349572e))
+* add more workflows ([cabd48d](https://github.com/zauberhaus/slice_utils/commit/cabd48dbb1a8f648e3fba7f547ebb04239df9ba5))
+* add test workflow ([2663f78](https://github.com/zauberhaus/slice_utils/commit/2663f78ab6c0a4f007daaf658ae8733b79728459))
+* bug in release workflow ([ffa53ea](https://github.com/zauberhaus/slice_utils/commit/ffa53eab4909ced86e4e8a46f213df18f5e7e446))
+* change schedule for CodeQL ([9cd42e9](https://github.com/zauberhaus/slice_utils/commit/9cd42e94bd3d77074f98871fc7a8cc47539bbd83))
+* reenable code scan ([daa7285](https://github.com/zauberhaus/slice_utils/commit/daa728533abbf91b28151c03445723501a0aec72))
+
 ## [1.0.4](https://github.com/zauberhaus/slice_utils/compare/v1.0.3...v1.0.4) (2026-01-13)
 
 
