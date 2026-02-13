@@ -8,6 +8,7 @@ package slice_utils
 import (
 	"cmp"
 	"maps"
+	"reflect"
 	"slices"
 
 	"regexp"
@@ -46,6 +47,44 @@ func SortFunc[Slice ~[]V, V any](slice Slice, f func(val1 V, val2 V) bool) {
 
 		return f(v1, v2)
 	})
+}
+
+func To[T any, V any, Slice ~[]V](slice Slice) []T {
+	return slices.Collect(ConvertSeq(slices.Values(slice), func(val V) T {
+		t := reflect.TypeFor[T]()
+		v := reflect.ValueOf(val)
+
+		if v.Type() == t {
+			return any(val).(T)
+		}
+
+		isPtr := t.Kind() == reflect.Pointer
+		if isPtr {
+			t = t.Elem()
+		}
+
+		if v.Kind() == reflect.Pointer {
+			v = v.Elem()
+		}
+
+		if v.CanConvert(t) {
+			v2 := v.Convert(t)
+			if isPtr {
+				p := reflect.New(t)
+				p.Elem().Set(v2)
+
+				if p.CanInterface() {
+					return p.Interface().(T)
+				}
+			} else {
+				if v2.CanInterface() {
+					return v2.Interface().(T)
+				}
+			}
+		}
+
+		return *new(T)
+	}))
 }
 
 func ToAny[Slice ~[]V, V any](slice Slice) []any {
