@@ -15,6 +15,10 @@ import (
 	"github.com/zauberhaus/slice_utils"
 )
 
+func Ptr[T any](v T) *T {
+	return &v
+}
+
 func TestSelect(t *testing.T) {
 	tests := []struct {
 		name  string
@@ -920,6 +924,78 @@ func TestPairs(t *testing.T) {
 	t.Run("strings", func(t *testing.T) {
 		got := slice_utils.Pairs("a", "b", "c")
 		want := [][2]string{{"a", "b"}, {"c", ""}}
+		assert.Equal(t, want, got)
+	})
+}
+
+func TestTo(t *testing.T) {
+	t.Run("int to int32", func(t *testing.T) {
+		input := []int{1, 2, 3}
+		want := []int32{1, 2, 3}
+		got := slice_utils.To[int32](input)
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("int to string", func(t *testing.T) {
+		input := []int{1, 2, 3}
+		want := []string{"\x01", "\x02", "\x03"}
+		got := slice_utils.To[string](input)
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("int to string pointer", func(t *testing.T) {
+		input := []int{1, 2, 3}
+		want := []*string{Ptr("\x01"), Ptr("\x02"), Ptr("\x03")}
+		got := slice_utils.To[*string](input)
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("int pointer to string", func(t *testing.T) {
+		input := []*int{Ptr(1), Ptr(2), Ptr(3)}
+		want := []string{"\x01", "\x02", "\x03"}
+		got := slice_utils.To[string](input)
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("int pointer to int pointer", func(t *testing.T) {
+		input := []*int{Ptr(1), Ptr(2), Ptr(3)}
+		want := []*int{Ptr(1), Ptr(2), Ptr(3)}
+		got := slice_utils.To[*int](input)
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("int pointer to int", func(t *testing.T) {
+		input := []*int{Ptr(1), Ptr(2), Ptr(3)}
+		want := []int{1, 2, 3}
+		got := slice_utils.To[int](input)
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("int to int pointer", func(t *testing.T) {
+		input := []int{1, 2, 3}
+		want := []*int{Ptr(1), Ptr(2), Ptr(3)}
+		got := slice_utils.To[*int](input)
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("string to string", func(t *testing.T) {
+		input := []string{"a", "b", "c"}
+		want := []string{"a", "b", "c"}
+		got := slice_utils.To[string](input)
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("empty slice", func(t *testing.T) {
+		input := []int{}
+		var want []int32
+		got := slice_utils.To[int32](input)
+		assert.Equal(t, want, got)
+	})
+
+	t.Run("[]any to []int", func(t *testing.T) {
+		input := []any{1, 2, 3}
+		want := []int{1, 2, 3}
+		got := slice_utils.To[int](input)
 		assert.Equal(t, want, got)
 	})
 }
