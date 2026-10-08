@@ -16,7 +16,32 @@ import (
 )
 
 func Select[Slice ~[]V, V any](slice Slice, f func(val V) bool) Slice {
-	return slices.Collect(FilterSeq(slices.Values(slice), f))
+	r := slices.Collect(FilterSeq(slices.Values(slice), f))
+	if r == nil {
+		return Slice{}
+	}
+
+	return r
+}
+
+func First[Slice ~[]V, V any](s Slice, fn func(V) bool) (V, bool) {
+	for _, v := range s {
+		if fn(v) {
+			return v, true
+		}
+	}
+
+	return *new(V), false
+}
+
+func Last[Slice ~[]V, V any](s Slice, fn func(V) bool) (V, bool) {
+	for _, v := range slices.Backward(s) {
+		if fn(v) {
+			return v, true
+		}
+	}
+
+	return *new(V), false
 }
 
 func Count[Slice ~[]V, V any](slice Slice, f func(val V) bool) int {
@@ -27,13 +52,12 @@ func Empty[Slice ~[]V, V any](slice Slice, f func(val V) bool) bool {
 	return IsEmptySeq(FilterSeq(slices.Values(slice), f))
 }
 
+// Delete returns slice without the first element that equals any of vals.
+// The input slice is never modified; a new slice is allocated on removal.
 func Delete[Slice ~[]V, V comparable](slice Slice, vals ...V) Slice {
-
 	for i, v := range slice {
-		for _, val := range vals {
-			if v == val {
-				return append(slice[:i], slice[i+1:]...)
-			}
+		if slices.Contains(vals, v) {
+			return slices.Concat(slice[:i], slice[i+1:])
 		}
 	}
 
@@ -144,25 +168,15 @@ func ToMap[Slice ~[]V, K comparable, V any](slice Slice, f func(val V) K) map[K]
 	return result
 }
 
+// Duplicates returns each value that occurs more than once, in the order of
+// its second occurrence.
 func Duplicates[Slice ~[]V, V comparable](slice Slice) Slice {
-	tmp := map[V]int{}
-	for _, v := range slice {
-		if cnt, ok := tmp[v]; ok {
-			tmp[v] = cnt + 1
-		} else {
-			tmp[v] = 1
-		}
+	r := slices.Collect(DuplicateSeq(slices.Values(slice)))
+	if r == nil {
+		return Slice{}
 	}
 
-	result := Slice{}
-
-	for k, v := range tmp {
-		if v > 1 {
-			result = append(result, k)
-		}
-	}
-
-	return result
+	return r
 }
 
 func Deduplicate[Slice ~[]V, V comparable](s Slice) Slice {
@@ -173,8 +187,16 @@ func Deduplicate[Slice ~[]V, V comparable](s Slice) Slice {
 	return r
 }
 
+// Groups returns the values of s grouped by f, ordered by ascending key.
 func Groups[Slice ~[]V, V any, K cmp.Ordered](s Slice, f func(v V) K) []Slice {
-	return slices.Collect(GroupSeq[Slice](slices.Values(s), f))
+	groups := Group(s, f)
+
+	result := make([]Slice, 0, len(groups))
+	for _, k := range slices.Sorted(maps.Keys(groups)) {
+		result = append(result, groups[k])
+	}
+
+	return result
 }
 
 func FilterStrings(s []string, p *regexp.Regexp) []string {
@@ -224,17 +246,9 @@ func Group[S ~[]E, E any, H cmp.Ordered](s S, f func(v E) H) map[H]S {
 		if group, ok := groups[key]; ok {
 			groups[key] = append(group, v)
 		} else {
-			groups[key] = []E{v}
+			groups[key] = S{v}
 		}
 	}
-
-	keys := slices.Collect(maps.Keys(groups))
-	sort.Slice(keys, func(i, j int) bool {
-		k1 := keys[i]
-		k2 := keys[j]
-
-		return k1 > k2
-	})
 
 	return groups
 }

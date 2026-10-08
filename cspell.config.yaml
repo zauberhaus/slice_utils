@@ -1,0 +1,17 @@
+version: "0.2"
+language: en,en-AU,en-GB
+import:
+  - "@cspell/dict-en-gb/cspell-ext.json"
+  - "@cspell/dict-en-au/cspell-ext.json"
+ignorePaths:
+  - go.mod
+  - go.sum
+  - .gitignore
+  - "*.yaml"
+  - "*.json"
+  - "*_enum.go"
+  - coverage*
+words:
+  - stretchr
+  - unpushed
+  - zauberhaus

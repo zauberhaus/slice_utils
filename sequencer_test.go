@@ -8,6 +8,7 @@ package slice_utils_test
 import (
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"maps"
 	"regexp"
 	"slices"
@@ -55,8 +56,6 @@ func TestFilterSeq(t *testing.T) {
 func TestRemoveSeq(t *testing.T) {
 	data := []int{1, 2, 3, 4, 5}
 	remove := []int{2, 4}
-	// Note: RemoveSeq iterates the 'remove' sequence for every element in 'data'.
-	// This works for slice-backed sequences (restartable).
 	seq := slice_utils.RemoveSeq(slices.Values(data), slices.Values(remove))
 	got := slices.Collect(seq)
 	assert.Equal(t, []int{1, 3, 5}, got)
@@ -358,4 +357,88 @@ func TestEarlyTermination(t *testing.T) {
 		})
 		assert.Equal(t, 1, count)
 	})
+}
+
+func TestSeqReuse(t *testing.T) {
+	t.Run("DeduplicationSeq", func(t *testing.T) {
+		seq := slice_utils.DeduplicationSeq(slices.Values([]int{1, 2, 2, 3}))
+		assert.Equal(t, []int{1, 2, 3}, slices.Collect(seq))
+		assert.Equal(t, []int{1, 2, 3}, slices.Collect(seq))
+	})
+
+	t.Run("DuplicateSeq", func(t *testing.T) {
+		seq := slice_utils.DuplicateSeq(slices.Values([]int{1, 1, 2}))
+		assert.Equal(t, []int{1}, slices.Collect(seq))
+		assert.Equal(t, []int{1}, slices.Collect(seq))
+	})
+
+	t.Run("GroupSeq", func(t *testing.T) {
+		seq := slice_utils.GroupSeq[[]int](slices.Values([]int{1, 2, 3}), func(v int) int { return v % 2 })
+		assert.Equal(t, [][]int{{1, 3}, {2}}, slices.Collect(seq))
+		assert.Equal(t, [][]int{{1, 3}, {2}}, slices.Collect(seq))
+	})
+
+	t.Run("HashSeq", func(t *testing.T) {
+		seq := slice_utils.HashSeq(slices.Values([]string{"a", "b"}))
+		assert.Equal(t, maps.Collect(seq), maps.Collect(seq))
+	})
+}
+
+func TestHashSeqEqualValues(t *testing.T) {
+	var hashes []uint64
+	for h := range slice_utils.HashSeq(slices.Values([]string{"x", "y", "x"})) {
+		hashes = append(hashes, h)
+	}
+	assert.Equal(t, hashes[0], hashes[2])
+	assert.NotEqual(t, hashes[0], hashes[1])
+
+	// separate calls hash equal values the same way
+	other := maps.Collect(slice_utils.HashSeq(slices.Values([]string{"x"})))
+	assert.Contains(t, other, hashes[0])
+}
+
+func TestHashSeqDeterministic(t *testing.T) {
+	h := fnv.New64a()
+	h.Write([]byte(`"x"`))
+
+	for got := range slice_utils.HashSeq(slices.Values([]string{"x"})) {
+		assert.Equal(t, h.Sum64(), got, "hash should be FNV-1a of the %#v representation")
+	}
+}
+
+func TestGroupSeqOrderAndLaziness(t *testing.T) {
+	calls := 0
+	seq := slice_utils.GroupSeq[[]int](slices.Values([]int{5, 1, 4, 2, 3}), func(v int) int {
+		calls++
+		return v % 3
+	})
+	assert.Zero(t, calls, "GroupSeq should not consume its input until iterated")
+
+	assert.Equal(t, [][]int{{5, 2}, {1, 4}, {3}}, slices.Collect(seq), "groups in order of first key appearance")
+}
+
+func TestSumSeqPreservesOrder(t *testing.T) {
+	assert.Equal(t, "bac", slice_utils.SumSeq(slices.Values([]string{"b", "a", "c"})))
+	assert.Equal(t, "", slice_utils.SumSeq(slices.Values([]string{})))
+}
+
+func TestRemoveSeqSingleUseRemoveSeq(t *testing.T) {
+	reads := 0
+	remove := func(yield func(int) bool) {
+		reads++
+		for _, v := range []int{2, 4} {
+			if !yield(v) {
+				return
+			}
+		}
+	}
+
+	got := slices.Collect(slice_utils.RemoveSeq(slices.Values([]int{1, 2, 3, 4, 5}), remove))
+	assert.Equal(t, []int{1, 3, 5}, got)
+	assert.Equal(t, 1, reads, "RemoveSeq should read the remove sequence once per iteration")
+}
+
+func TestPatternSeqNilPattern(t *testing.T) {
+	got := slices.Collect(slice_utils.PatternSeq(slices.Values([]string{"a"}), nil))
+	assert.Empty(t, got)
 }
