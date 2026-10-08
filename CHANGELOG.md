@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/zauberhaus/slice_utils/compare/v1.1.1...v1.2.0) (2026-10-08)
+
+
+### Features
+
+* add first/last functions and bug fixes ([b795bdc](https://github.com/zauberhaus/slice_utils/commit/b795bdcd88699df1ea178b4c432be97ad3e81a10))
+
 ## [1.1.1](https://github.com/zauberhaus/slice_utils/compare/v1.1.0...v1.1.1) (2026-02-13)
 
 
