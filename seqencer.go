@@ -10,9 +10,8 @@ import (
 	"fmt"
 	"iter"
 	"regexp"
-	"slices"
 
-	"hash/maphash"
+	"hash/fnv"
 )
 
 func FilterSeq[S any](s iter.Seq[S], fn func(S) bool) iter.Seq[S] {
@@ -27,30 +26,33 @@ func FilterSeq[S any](s iter.Seq[S], fn func(S) bool) iter.Seq[S] {
 	}
 }
 
+// RemoveSeq yields the values of s that are not in g. g is read once per
+// iteration of the returned sequence, before s is consumed.
 func RemoveSeq[S comparable](s iter.Seq[S], g iter.Seq[S]) iter.Seq[S] {
 	return func(yield func(s S) bool) {
-		for v1 := range s {
-			found := false
+		remove := map[S]struct{}{}
+		for v := range g {
+			remove[v] = struct{}{}
+		}
 
-			for v2 := range g {
-				if v1 == v2 {
-					found = true
-					break
-				}
-			}
-
-			if !found {
-				if !yield(v1) {
+		for v := range s {
+			if _, found := remove[v]; !found {
+				if !yield(v) {
 					return
 				}
 			}
 		}
-
 	}
 }
 
+// PatternSeq yields the values whose text matches pattern. A nil pattern
+// matches nothing.
 func PatternSeq[S any](s iter.Seq[S], pattern *regexp.Regexp) iter.Seq[S] {
 	return func(yield func(s S) bool) {
+		if pattern == nil {
+			return
+		}
+
 		for v := range s {
 			var txt string
 			switch o := any(v).(type) {
@@ -94,9 +96,9 @@ func StringPatternSeq[S any](s iter.Seq[S], pattern string) iter.Seq[S] {
 }
 
 func DuplicateSeq[V comparable](s iter.Seq[V]) iter.Seq[V] {
-	m := map[V]int{}
-
 	return func(yield func(s V) bool) {
+		m := map[V]int{}
+
 		for v := range s {
 			if cnt, ok := m[v]; ok {
 				m[v] = cnt + 1
@@ -113,9 +115,9 @@ func DuplicateSeq[V comparable](s iter.Seq[V]) iter.Seq[V] {
 }
 
 func DeduplicationSeq[V comparable](s iter.Seq[V]) iter.Seq[V] {
-	m := map[V]bool{}
-
 	return func(yield func(s V) bool) {
+		m := map[V]bool{}
+
 		for v := range s {
 			if _, ok := m[v]; ok {
 				continue
@@ -129,13 +131,16 @@ func DeduplicationSeq[V comparable](s iter.Seq[V]) iter.Seq[V] {
 	}
 }
 
+// HashSeq yields each value with a deterministic FNV-1a hash of its %#v
+// representation, so equal values hash the same across calls and processes.
+// Pointer values hash by address.
 func HashSeq[E comparable](s iter.Seq[E]) iter.Seq2[uint64, E] {
-	var h maphash.Hash
-
 	return func(yield func(uint64, E) bool) {
+		h := fnv.New64a()
+
 		for v := range s {
 			h.Reset()
-			maphash.WriteComparable(&h, v)
+			fmt.Fprintf(h, "%#v", v)
 			if !yield(h.Sum64(), v) {
 				return
 			}
@@ -143,19 +148,24 @@ func HashSeq[E comparable](s iter.Seq[E]) iter.Seq2[uint64, E] {
 	}
 }
 
+// GroupSeq yields the values of s grouped by fn, with groups in the order
+// their keys first appear.
 func GroupSeq[S ~[]E, E any, H comparable](s iter.Seq[E], fn func(v E) H) iter.Seq[S] {
-	groups := map[H]S{}
-
-	for v := range s {
-		h := fn(v)
-		g := groups[h]
-		g = append(g, v)
-		groups[h] = g
-	}
-
 	return func(yield func(S) bool) {
-		for _, v := range groups {
-			if !yield(v) {
+		groups := map[H]S{}
+		var keys []H
+
+		for v := range s {
+			h := fn(v)
+			if _, ok := groups[h]; !ok {
+				keys = append(keys, h)
+			}
+
+			groups[h] = append(groups[h], v)
+		}
+
+		for _, h := range keys {
+			if !yield(groups[h]) {
 				return
 			}
 		}
@@ -190,10 +200,7 @@ func SumFuncSeq[S any, T cmp.Ordered](s iter.Seq[S], fn func(S) (T, error)) (T, 
 func SumSeq[S cmp.Ordered](s iter.Seq[S]) S {
 	var result S
 
-	items := slices.Collect(s)
-	slices.Sort(items)
-
-	for _, v := range items {
+	for v := range s {
 		result += v
 	}
 

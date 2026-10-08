@@ -9,6 +9,7 @@ on:
       - "go.mod"
       - "go.sum"
       - "CHANGELOG.md"
+  workflow_dispatch:
 
 permissions:
   contents: write

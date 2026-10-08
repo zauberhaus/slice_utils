@@ -8,7 +8,6 @@ package slice_utils_test
 import (
 	"errors"
 	"regexp"
-	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -64,6 +63,160 @@ func TestSelect(t *testing.T) {
 			assert.ElementsMatch(t, tt.want, got, "Select() should return matching elements") // Use ElementsMatch for slice comparison where order might not matter
 		})
 	}
+}
+
+func TestFirst(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     []int
+		f         func(val int) bool
+		want      int
+		wantFound bool
+	}{
+		{
+			name:      "first even number",
+			input:     []int{1, 2, 3, 4, 5},
+			f:         func(val int) bool { return val%2 == 0 },
+			want:      2,
+			wantFound: true,
+		},
+		{
+			name:      "first element matches",
+			input:     []int{1, 2, 3},
+			f:         func(val int) bool { return true },
+			want:      1,
+			wantFound: true,
+		},
+		{
+			name:      "only last element matches",
+			input:     []int{1, 2, 3},
+			f:         func(val int) bool { return val == 3 },
+			want:      3,
+			wantFound: true,
+		},
+		{
+			name:      "no match",
+			input:     []int{1, 2, 3},
+			f:         func(val int) bool { return false },
+			want:      0,
+			wantFound: false,
+		},
+		{
+			name:      "empty slice",
+			input:     []int{},
+			f:         func(val int) bool { return true },
+			want:      0,
+			wantFound: false,
+		},
+		{
+			name:      "nil slice",
+			input:     nil,
+			f:         func(val int) bool { return true },
+			want:      0,
+			wantFound: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, found := slice_utils.First(tt.input, tt.f)
+			assert.Equal(t, tt.wantFound, found)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFirstStopsAtFirstMatch(t *testing.T) {
+	calls := 0
+	got, found := slice_utils.First([]int{1, 2, 3, 4}, func(val int) bool {
+		calls++
+		return val == 2
+	})
+
+	assert.True(t, found)
+	assert.Equal(t, 2, got)
+	assert.Equal(t, 2, calls, "First() should stop evaluating after the first match")
+}
+
+func TestFirstZeroValuePointer(t *testing.T) {
+	got, found := slice_utils.First([]*int{}, func(val *int) bool { return true })
+	assert.False(t, found)
+	assert.Nil(t, got)
+}
+
+func TestLast(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     []int
+		f         func(val int) bool
+		want      int
+		wantFound bool
+	}{
+		{
+			name:      "last even number",
+			input:     []int{1, 2, 3, 4, 5},
+			f:         func(val int) bool { return val%2 == 0 },
+			want:      4,
+			wantFound: true,
+		},
+		{
+			name:      "last element matches",
+			input:     []int{1, 2, 3},
+			f:         func(val int) bool { return true },
+			want:      3,
+			wantFound: true,
+		},
+		{
+			name:      "only first element matches",
+			input:     []int{1, 2, 3},
+			f:         func(val int) bool { return val == 1 },
+			want:      1,
+			wantFound: true,
+		},
+		{
+			name:      "no match",
+			input:     []int{1, 2, 3},
+			f:         func(val int) bool { return false },
+			want:      0,
+			wantFound: false,
+		},
+		{
+			name:      "empty slice",
+			input:     []int{},
+			f:         func(val int) bool { return true },
+			want:      0,
+			wantFound: false,
+		},
+		{
+			name:      "nil slice",
+			input:     nil,
+			f:         func(val int) bool { return true },
+			want:      0,
+			wantFound: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, found := slice_utils.Last(tt.input, tt.f)
+			assert.Equal(t, tt.wantFound, found)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFirstLastNamedSliceType(t *testing.T) {
+	type names []string
+	s := names{"alice", "bob", "anna", "carl"}
+	startsWithA := func(v string) bool { return len(v) > 0 && v[0] == 'a' }
+
+	first, ok := slice_utils.First(s, startsWithA)
+	assert.True(t, ok)
+	assert.Equal(t, "alice", first)
+
+	last, ok := slice_utils.Last(s, startsWithA)
+	assert.True(t, ok)
+	assert.Equal(t, "anna", last)
 }
 
 func TestCount(t *testing.T) {
@@ -636,7 +789,7 @@ func TestGroups(t *testing.T) {
 			name:  "group by parity",
 			input: []int{1, 2, 3, 4, 5, 6},
 			f:     func(v int) int { return v % 2 }, // 0 for even, 1 for odd
-			want:  [][]int{{1, 3, 5}, {2, 4, 6}},    // The internal implementation of GroupSeq might sort keys.
+			want:  [][]int{{2, 4, 6}, {1, 3, 5}},    // groups ordered by ascending key
 		},
 		{
 			name:  "group by tens digit",
@@ -661,20 +814,7 @@ func TestGroups(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := slice_utils.Groups(tt.input, tt.f)
-
-			// To make `assert.ElementsMatch` work for slices of slices reliably,
-			// we need to ensure that the order of elements within each inner slice
-			// and the order of the inner slices themselves are deterministic.
-			// The original GroupSeq mock sorted keys. We need to ensure elements within groups are also sorted.
-			for i := range got {
-				sort.Ints(got[i])
-			}
-			for i := range tt.want {
-				sort.Ints(tt.want[i])
-			}
-
-			// Then, ElementsMatch can compare the groups without strict order of groups.
-			assert.ElementsMatch(t, tt.want, got, "Groups() should correctly group elements")
+			assert.Equal(t, tt.want, got, "Groups() should group elements ordered by key")
 		})
 	}
 }
@@ -998,4 +1138,59 @@ func TestTo(t *testing.T) {
 		got := slice_utils.To[int](input)
 		assert.Equal(t, want, got)
 	})
+}
+
+func TestSelectNoMatchReturnsEmptySlice(t *testing.T) {
+	got := slice_utils.Select([]int{1, 2, 3}, func(val int) bool { return false })
+	assert.NotNil(t, got)
+	assert.Empty(t, got)
+}
+
+func TestLastStopsAtLastMatch(t *testing.T) {
+	calls := 0
+	got, found := slice_utils.Last([]int{1, 2, 3, 4}, func(val int) bool {
+		calls++
+		return val == 3
+	})
+
+	assert.True(t, found)
+	assert.Equal(t, 3, got)
+	assert.Equal(t, 2, calls, "Last() should search from the end and stop at the first match")
+}
+
+func TestDeleteDoesNotModifyInput(t *testing.T) {
+	input := []int{1, 2, 3}
+	got := slice_utils.Delete(input, 1)
+
+	assert.Equal(t, []int{2, 3}, got)
+	assert.Equal(t, []int{1, 2, 3}, input)
+}
+
+func TestDuplicatesOrder(t *testing.T) {
+	input := []int{5, 3, 5, 1, 3, 1, 1}
+	for range 20 {
+		assert.Equal(t, []int{5, 3, 1}, slice_utils.Duplicates(input))
+	}
+}
+
+func TestGroupsOrderIsStable(t *testing.T) {
+	input := make([]int, 100)
+	for i := range input {
+		input[i] = i
+	}
+
+	want := slice_utils.Groups(input, func(v int) int { return v % 10 })
+	for i, g := range want {
+		assert.Equal(t, i, g[0], "groups should be ordered by key")
+	}
+
+	for range 20 {
+		assert.Equal(t, want, slice_utils.Groups(input, func(v int) int { return v % 10 }))
+	}
+}
+
+func TestStringsNilPattern(t *testing.T) {
+	input := []string{"a", "b"}
+	assert.Equal(t, []string{}, slice_utils.FilterStrings(input, nil))
+	assert.Equal(t, []string{"a", "b"}, slice_utils.RemoveStrings(input, nil))
 }
