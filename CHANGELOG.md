@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/zauberhaus/slice_utils/compare/v1.2.0...v1.2.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* upgrade dependencies ([bfa87fc](https://github.com/zauberhaus/slice_utils/commit/bfa87fcea117a49b5ab6621f0d44b5eaaeedec6a))
+
 ## [1.2.0](https://github.com/zauberhaus/slice_utils/compare/v1.1.1...v1.2.0) (2026-10-08)
 
 
